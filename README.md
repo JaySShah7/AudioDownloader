@@ -10,4 +10,4 @@ The user is responsible for any inappropriate usage of this software. This tool 
 files the user can legally download. This tool is not to be used for piracy, and the user is responsible for all consequences.
 
 ## Documentation
-Check the (wiki)[https://github.com/JaySShah7/AudioDownloader/wiki] for documentation.
+Check the [wiki](https://github.com/JaySShah7/AudioDownloader/wiki) for documentation.
