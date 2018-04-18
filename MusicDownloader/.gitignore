@@ -1,0 +1,11 @@
+MusicDownloader/DownloadedSongs/
+MusicDownloader/__pycache__/
+MusicDownloader/TestFiles/
+
+*.log
+*.exe
+*.log.1
+*.csv
+.cache*
+
+MusicDownloader/SpotifyCredentials.py
