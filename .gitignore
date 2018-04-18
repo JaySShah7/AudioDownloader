@@ -1,6 +1,6 @@
-MusicDownloader/DownloadedSongs/
-MusicDownloader/__pycache__/
-MusicDownloader/TestFiles/
+AudioDownloader/DownloadedSongs/
+AudioDownloader/__pycache__/
+AudioDownloader/TestFiles/
 
 *.log
 *.exe
@@ -8,4 +8,4 @@ MusicDownloader/TestFiles/
 *.csv
 .cache*
 
-MusicDownloader/SpotifyCredentials.py
+AudioDownloader/SpotifyCredentials.py
