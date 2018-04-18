@@ -1,7 +1,7 @@
 # AudioDownloader
 Download audio files from Spotify or by name, and fixes audio tags.
 
-## Descroption
+## Description
 Downloads files from my-free-mp3.net, by either name or from spotify playlists. Can attempt to fix ID3 audio tags for files by analyzing the file name and attempting
 to retrieve the tags from the Spotify database.
 
