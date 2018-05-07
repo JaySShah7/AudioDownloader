@@ -2,7 +2,9 @@ from selenium import webdriver
 import time, os, sys, re, requests, csv, spotipy
 import spotipy.util as util
 from SpotifyCredentials import *
-
+import youtube_dl
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import logging
 import eyed3
 logging.getLogger().handlers.pop()
@@ -41,6 +43,7 @@ logger.info("Program started!")
 
 class MusicDownloader: #Remember: artist name comes first
     def __init__(self):
+        self.FORBIDDEN_SONG_TERMS=['\\', '/', '&', '.', ',', '(', ')', '[', ']', ' ft ', ' feat ', 'featuring ']
         self.driver=webdriver.Chrome()
         os.chdir(sys.path[0])
         self.driver.set_page_load_timeout(30)
@@ -48,12 +51,31 @@ class MusicDownloader: #Remember: artist name comes first
         self.token=util.prompt_for_user_token(SPOTIFY_USERNAME,SCOPE,client_id=CLIENT_ID,client_secret=CLIENT_SECRET,redirect_uri=REDIRECT_URI)
         self.spotify = spotipy.Spotify(auth=self.token)
         self.FailedDownloads=[]
-        
+
+        self.youtube_searcher=build('youtube', 'v3', developerKey=YOUTUBE_AUTH)
+        self.youtube=youtube_dl.YoutubeDL({
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'logger': logger,
+            'progress_hooks': [self.progress_hook],
+            })
+        self.youtube.params={'outtmpl':'./DownloadedSongs/%(title)s.%(ext)s',
+                             'quiet':True,
+                             'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'}
+            
 
     def Exit(self):
         self.driver.quit()
 
+    def progress_hook(self, d):
+        if d['status']=='finished':
+            logger.info("Done downloading, now converting..")
 
+            
     def FixTag(self, FileName):  #fixtag of specific file
         logger.info("Fixing tags: "+str(FileName))
         time.sleep(0.5)
@@ -193,8 +215,7 @@ class MusicDownloader: #Remember: artist name comes first
         
     def GetSongInformation(self, SongName): #Returns Dictionary with Link, Song, Artist
         SongName=SongName.lower()
-        forbidden=['\\', '/', '&', '.', ',', '(', ')', '[', ']', ' ft ', ' feat ', 'featuring ']
-        for wrd in forbidden:
+        for wrd in self.FORBIDDEN_SONG_TERMS:
             SongName=SongName.replace(wrd, ' ')   #NEW ADDITION, TEST LATER
 
         SongName=SongName.title()
@@ -305,15 +326,39 @@ class MusicDownloader: #Remember: artist name comes first
             tries+=1
         if tries==5:
             logger.error("File failed to download. Too many tries.")
-            
-
+  
+    def DownloadFromYoutube(self, SongName): #TODO TODO TODO TODO TODO -----------------------------------------------------------------------------------
+        SongName=SongName.lower()
+        for wrd in self.FORBIDDEN_SONG_TERMS:
+            SongName=SongName.replace(wrd, ' ') 
+        results=self.youtube_searcher.search().list(
+            q=SongName,
+            part='id,snippet',
+            maxResults=15).execute()
+        SongLink=''
+        for i in range(len(results['items'])):
+            if results['items'][i]['id']['kind']=='youtube#video' and self.MatchesKeywords(SongName, results['items'][i]['snippet']['title']):
+                SongLink='https://youtube.com/watch?v='+results['items'][i]['id']['videoId']
+                break
+        if SongLink=='':
+            raise Exception("No result found for "+SongName)
+        print("Downloading song: "+ SongName)
+        self.youtube.params['outtmpl']='./DownloadedSongs/'+SongName+'.%(ext)s'
+        self.youtube.download([SongLink])
+        logger.info("Song Downloaded!")
+        print("Song downloaded: "+SongName)
 
     def DownloadSong(self,SongName):
         try:
             SongInformation=self.GetSongInformation(SongName)
         except Exception as e:
-            logger.error("Could not get song information from my-free-mp3")
-            logger.error(e)
+            logger.warning("Could not get song information from my-free-mp3")
+            logger.warning(e)
+            try:
+                self.DownloadFromYoutube(SongName)
+                return True
+            except Exception as e:
+                logger.error(e)
             self.FailedDownloads.append(SongName)
             print("Download failed: "+ SongName)
             return False
@@ -366,14 +411,17 @@ class MusicDownloader: #Remember: artist name comes first
 
 downloader=MusicDownloader()
 #downloader.DownloadSongList('SongList.csv')
-#downloader.DownloadSpotifyPlaylist('spotify:user:22yflzfiannkxkcy7hng346ga:playlist:1mMFlL8j6r82BGFFAtyRHI')
-#downloader.DownloadSong("MC Fioti Ft Future, J Balvin Stefflon, Don Juan Magan - Bum Bum Tam Tam")
+#downloader.SearchPlaylist()
+#downloader.DownloadSpotifyPlaylist()
+#downloader.DownloadSong("Lost Stories - Paradise")
+#downloader.DownloadFromYoutube('Countdown timer')
 #print(downloader.FailedDownloads)
-#downloader.FailedDownloads=['Travis Atreo - Kids', 'Travis Atreo - Kids', 'Travis Atreo - Kids', 'Travis Atreo - Kids', 'Travis Atreo - Kids', 'Cash Cash - How To Love (feat. Sofia Reyes)', 'courtship. - Tell Me Tell Me', 'courtship. - Tell Me Tell Me', 'courtship. - Tell Me Tell Me', 'courtship. - Tell Me Tell Me', 'courtship. - Tell Me Tell Me', 'Lukas Graham - 7 Years - Spotify Sessions', 'Lukas Graham - 7 Years - Spotify Sessions', 'Lukas Graham - 7 Years - Spotify Sessions', 'Lukas Graham - 7 Years - Spotify Sessions', 'Lukas Graham - 7 Years - Spotify Sessions', 'Gab Veläzquez - Budapest', 'Gab Veläzquez - Budapest', 'Gab Veläzquez - Budapest', 'Gab Veläzquez - Budapest', 'Gab Veläzquez - Budapest', 'Ben Schuller - 2u', 'Ben Schuller - 2u', 'Ben Schuller - 2u', 'Ben Schuller - 2u', 'Ben Schuller - 2u', "Megan Davies - White Walls/Can't Hold Us/Same Love/Thrift Shop (Acoustic Mashup) Feat. Jaclyn Davies", "Megan Davies - White Walls/Can't Hold Us/Same Love/Thrift Shop (Acoustic Mashup) Feat. Jaclyn Davies", "Megan Davies - White Walls/Can't Hold Us/Same Love/Thrift Shop (Acoustic Mashup) Feat. Jaclyn Davies", "Megan Davies - White Walls/Can't Hold Us/Same Love/Thrift Shop (Acoustic Mashup) Feat. Jaclyn Davies", "Megan Davies - White Walls/Can't Hold Us/Same Love/Thrift Shop (Acoustic Mashup) Feat. Jaclyn Davies", 'Jennifer Lopez - Vivir Mi Vida - Recorded at Spotify Studios NYC', 'Jennifer Lopez - Vivir Mi Vida - Recorded at Spotify Studios NYC', 'Jennifer Lopez - Vivir Mi Vida - Recorded at Spotify Studios NYC', 'Jennifer Lopez - Vivir Mi Vida - Recorded at Spotify Studios NYC', 'Jennifer Lopez - Vivir Mi Vida - Recorded at Spotify Studios NYC', 'Midday Swim - Living a Lie', 'Midday Swim - Living a Lie', 'Midday Swim - Living a Lie', 'Midday Swim - Living a Lie', 'Midday Swim - Living a Lie', 'PONY - Baby, Please', 'PONY - Baby, Please', 'PONY - Baby, Please', 'PONY - Baby, Please', 'PONY - Baby, Please', "Big Shaq - Man's Not Hot - Black Caviar Remix", "Big Shaq - Man's Not Hot - Black Caviar Remix", "Big Shaq - Man's Not Hot - Black Caviar Remix", "Big Shaq - Man's Not Hot - Black Caviar Remix", "Big Shaq - Man's Not Hot - Black Caviar Remix", 'We Rabbitz, Marina Lin - Real Friends', 'We Rabbitz, Marina Lin - Real Friends', 'We Rabbitz, Marina Lin - Real Friends', 'We Rabbitz, Marina Lin - Real Friends', 'We Rabbitz, Marina Lin - Real Friends', 'Boyce Avenue - What Lovers Do (feat. Mariana Nolasco)', 'Boyce Avenue - What Lovers Do (feat. Mariana Nolasco)', 'Boyce Avenue - What Lovers Do (feat. Mariana Nolasco)', 'Boyce Avenue - What Lovers Do (feat. Mariana Nolasco)', 'Boyce Avenue - What Lovers Do (feat. Mariana Nolasco)']
 #downloader.RetryFailedDownloads()
 #downloader.FixAllTags()
 
-downloader.SearchPlaylist()
+
+
+downloader.FixAllTags()
 downloader.Exit()
 
 
