@@ -1,11 +1,13 @@
 AudioDownloader/DownloadedSongs/
 AudioDownloader/__pycache__/
 AudioDownloader/TestFiles/
-
+DownloadedSongs
 *.log
 *.exe
 *.log.1
 *.csv
 .cache*
 
+
+QuickDownload.py
 AudioDownloader/SpotifyCredentials.py

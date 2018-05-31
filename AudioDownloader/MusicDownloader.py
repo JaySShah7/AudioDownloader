@@ -65,7 +65,8 @@ class MusicDownloader: #Remember: artist name comes first
             })
         self.youtube.params={'outtmpl':'./DownloadedSongs/%(title)s.%(ext)s',
                              'quiet':True,
-                             'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'}
+                             'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
+                             'logstostderr':True}
             
 
     def Exit(self):
@@ -341,8 +342,8 @@ class MusicDownloader: #Remember: artist name comes first
                 SongLink='https://youtube.com/watch?v='+results['items'][i]['id']['videoId']
                 break
         if SongLink=='':
-            raise Exception("No result found for "+SongName)
-        print("Downloading song: "+ SongName)
+            raise Exception("No youtube result found for "+SongName)
+        print("Downloading song from Youtube: "+ SongName)
         self.youtube.params['outtmpl']='./DownloadedSongs/'+SongName+'.%(ext)s'
         self.youtube.download([SongLink])
         logger.info("Song Downloaded!")
@@ -368,7 +369,12 @@ class MusicDownloader: #Remember: artist name comes first
             return True
         except Exception as e:
             logger.error(e)
-            logger.error("Could not download: "+SongName)
+            logger.error("Could not download from myfreemp3: "+SongName)
+            try:
+                self.DownloadFromYoutube(SongName)
+                return True
+            except Exception as e:
+                logger.error(e)
             print("Download failed: "+ SongName)
             self.FailedDownloads.append(SongName)
             return False
@@ -408,21 +414,18 @@ class MusicDownloader: #Remember: artist name comes first
                 break
             print("\n\n")
         
-
-downloader=MusicDownloader()
-#downloader.DownloadSongList('SongList.csv')
-#downloader.SearchPlaylist()
-#downloader.DownloadSpotifyPlaylist()
-#downloader.DownloadSong("Lost Stories - Paradise")
-#downloader.DownloadFromYoutube('Countdown timer')
-#print(downloader.FailedDownloads)
-#downloader.RetryFailedDownloads()
-#downloader.FixAllTags()
-
-
-
-downloader.FixAllTags()
-downloader.Exit()
+if __name__=='__main__':
+        downloader=MusicDownloader()
+        #downloader.DownloadSongList('SongList.csv')
+        #downloader.SearchPlaylist()
+        #downloader.DownloadSpotifyPlaylist()
+        #downloader.DownloadSong("Lost Stories - Paradise")
+        #downloader.DownloadFromYoutube('Countdown timer')
+        #print(downloader.FailedDownloads)
+        #downloader.RetryFailedDownloads()
+        #downloader.FixAllTags()
+        #downloader.FixAllTags()
+        downloader.Exit()
 
 
                            
